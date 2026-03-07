@@ -23,6 +23,19 @@
 							</el-input>
 						</div>
 					</div>
+					<div class="search_view">
+						<div class="search_label">
+							通知状态：
+						</div>
+						<div class="search_box">
+							<el-select v-model="searchQuery.tongzhizhuangtai" placeholder="请选择通知状态" clearable>
+								<el-option label="待发送" value="0"></el-option>
+								<el-option label="发送中" value="1"></el-option>
+								<el-option label="发送成功" value="2"></el-option>
+								<el-option label="发送失败" value="3"></el-option>
+							</el-select>
+						</div>
+					</div>
 					<div class="search_btn_view">
 						<el-button class="search_btn" type="primary" @click="searchClick()" size="small">搜索</el-button>
 					</div>
@@ -35,6 +48,14 @@
 					<el-button class="del_btn" type="danger" :disabled="selRows.length?false:true" @click="delClick(null)"  v-if="btnAuth('jiuzhentongzhi','删除')">
 						<i class="iconfont icon-shanchu4"></i>
 						删除
+					</el-button>
+					<el-button class="retry_btn" type="warning" @click="retryBatchClick" v-if="btnAuth('jiuzhentongzhi','重试')">
+						<i class="iconfont icon-shuaxin"></i>
+						批量重试失败通知
+					</el-button>
+					<el-button class="stats_btn" type="info" @click="statisticsClick" v-if="btnAuth('jiuzhentongzhi','统计')">
+						<i class="iconfont icon-tongji"></i>
+						通知统计
 					</el-button>
 				</div>
 			</div>
@@ -139,6 +160,57 @@
 						{{scope.row.tongzhibeizhu}}
 					</template>
 				</el-table-column>
+				<el-table-column min-width="120"
+					:resizable='true'
+					:sortable='true'
+					align="left"
+					header-align="left"
+					prop="tongzhizhuangtai"
+					label="通知状态">
+					<template #default="scope">
+						<el-tag :type="getStatusType(scope.row.tongzhizhuangtai)">
+							{{getStatusText(scope.row.tongzhizhuangtai)}}
+						</el-tag>
+					</template>
+				</el-table-column>
+				<el-table-column min-width="120"
+					:resizable='true'
+					:sortable='true'
+					align="left"
+					header-align="left"
+					prop="jieshouzhuangtai"
+					label="接收状态">
+					<template #default="scope">
+						<el-tag :type="scope.row.jieshouzhuangtai=='1'?'success':'info'">
+							{{scope.row.jieshouzhuangtai=='1'?'已接收':'未接收'}}
+						</el-tag>
+					</template>
+				</el-table-column>
+				<el-table-column min-width="100"
+					:resizable='true'
+					:sortable='true'
+					align="left"
+					header-align="left"
+					prop="retryCount"
+					label="重试次数">
+					<template #default="scope">
+						{{scope.row.retryCount || 0}}
+					</template>
+				</el-table-column>
+				<el-table-column min-width="140"
+					:resizable='true'
+					:sortable='true'
+					align="left"
+					header-align="left"
+					prop="failReason"
+					label="失败原因">
+					<template #default="scope">
+						<el-tooltip v-if="scope.row.failReason" :content="scope.row.failReason" placement="top">
+							<span class="fail-reason">{{scope.row.failReason}}</span>
+						</el-tooltip>
+						<span v-else>-</span>
+					</template>
+				</el-table-column>
 				<el-table-column label="操作" width="300" :resizable='true' :sortable='true' align="left" header-align="left">
 					<template #default="scope">
 						<el-button class="view_btn" type="info" v-if=" btnAuth('jiuzhentongzhi','查看')" @click="infoClick(scope.row.id)">
@@ -151,6 +223,11 @@
 						<el-button class="del_btn" type="danger" @click="delClick(scope.row.id)"  v-if="btnAuth('jiuzhentongzhi','删除')">
 							<i class="iconfont icon-shanchu4"></i>
 							删除						</el-button>
+						<el-button class="retry_btn" v-if="btnAuth('jiuzhentongzhi','重试') && (scope.row.tongzhizhuangtai=='3' || scope.row.tongzhizhuangtai=='0')" 
+							type="warning" @click="retryClick(scope.row.id)">
+							<i class="iconfont icon-shuaxin"></i>
+							重试
+						</el-button>
 						<el-button class="cross_btn" v-if="btnAuth('jiuzhentongzhi','签到')" type="success" @click="jiuzhenqiandaoCrossAddOrUpdateHandler(scope.row,'cross','','','','')">
 							<i class="iconfont icon-dingdan3"></i>
 							签到
@@ -174,6 +251,25 @@
 		</div>
 		<formModel ref="formRef" @formModelChange="formModelChange"></formModel>
 		<jiuzhenqiandaoFormModel ref="jiuzhenqiandaoFormModelRef" @formModelChange="formModelChange"></jiuzhenqiandaoFormModel>
+		
+		<!-- 统计弹窗 -->
+		<el-dialog v-model="statisticsVisible" title="通知统计信息" width="500px">
+			<el-descriptions :column="1" border>
+				<el-descriptions-item label="总通知数">{{statistics.totalCount}}</el-descriptions-item>
+				<el-descriptions-item label="待发送">
+					<el-tag type="info">{{statistics.pendingCount}}</el-tag>
+				</el-descriptions-item>
+				<el-descriptions-item label="发送成功">
+					<el-tag type="success">{{statistics.successCount}}</el-tag>
+				</el-descriptions-item>
+				<el-descriptions-item label="发送失败">
+					<el-tag type="danger">{{statistics.failedCount}}</el-tag>
+				</el-descriptions-item>
+				<el-descriptions-item label="已接收">
+					<el-tag type="success">{{statistics.receivedCount}}</el-tag>
+				</el-descriptions-item>
+			</el-descriptions>
+		</el-dialog>
 	</div>
 </template>
 <script setup>
@@ -193,7 +289,8 @@
 		useRouter
 	} from 'vue-router'
 	import {
-		ElMessageBox
+		ElMessageBox,
+		ElMessage
 	} from 'element-plus'
 	import {
 		useStore
@@ -240,6 +337,9 @@
 		}
 		if(searchQuery.value.zhanghao&&searchQuery.value.zhanghao!=''){
 			params['zhanghao'] = '%' + searchQuery.value.zhanghao + '%'
+		}
+		if(searchQuery.value.tongzhizhuangtai&&searchQuery.value.tongzhizhuangtai!=''){
+			params['tongzhizhuangtai'] = searchQuery.value.tongzhizhuangtai
 		}
 		context.$http({
 			url: `${tableName}/page`,
@@ -389,6 +489,92 @@
 			jiuzhenqiandaoFormModelRef.value.init(row.id,'cross','签到',row,'jiuzhentongzhi',statusColumnName,tips,statusColumnValue)
 		})
     }
+	
+	// 获取状态标签类型
+	const getStatusType = (status) => {
+		switch(status) {
+			case '0': return 'info'      // 待发送
+			case '1': return 'warning'   // 发送中
+			case '2': return 'success'   // 发送成功
+			case '3': return 'danger'    // 发送失败
+			default: return 'info'
+		}
+	}
+	
+	// 获取状态文本
+	const getStatusText = (status) => {
+		switch(status) {
+			case '0': return '待发送'
+			case '1': return '发送中'
+			case '2': return '发送成功'
+			case '3': return '发送失败'
+			default: return '未知'
+		}
+	}
+	
+	// 重试单条通知
+	const retryClick = (id) => {
+		ElMessageBox.confirm('确定要重试发送该通知吗？', '提示', {
+			confirmButtonText: '确定',
+			cancelButtonText: '取消',
+			type: 'warning'
+		}).then(() => {
+			context.$http({
+				url: `${tableName}/retry/${id}`,
+				method: 'post'
+			}).then(res => {
+				if(res.data.code==0){
+					ElMessage.success('重试发送成功')
+					getList()
+				}else{
+					ElMessage.error(res.data.msg || '重试发送失败')
+				}
+			})
+		}).catch(() => {})
+	}
+	
+	// 批量重试
+	const retryBatchClick = () => {
+		ElMessageBox.confirm('确定要批量重试所有失败的通知吗？', '提示', {
+			confirmButtonText: '确定',
+			cancelButtonText: '取消',
+			type: 'warning'
+		}).then(() => {
+			context.$http({
+				url: `${tableName}/retryBatch`,
+				method: 'post'
+			}).then(res => {
+				if(res.data.code==0){
+					ElMessage.success(res.data.msg || '批量重试完成')
+					getList()
+				}else{
+					ElMessage.error(res.data.msg || '批量重试失败')
+				}
+			})
+		}).catch(() => {})
+	}
+	
+	// 统计
+	const statisticsVisible = ref(false)
+	const statistics = ref({
+		totalCount: 0,
+		pendingCount: 0,
+		successCount: 0,
+		failedCount: 0,
+		receivedCount: 0
+	})
+	const statisticsClick = () => {
+		context.$http({
+			url: `${tableName}/statistics`,
+			method: 'get'
+		}).then(res => {
+			if(res.data.code==0){
+				statistics.value = res.data.data
+				statisticsVisible.value = true
+			}
+		})
+	}
+	
 	//初始化
 	const init = () => {
 		getList()
@@ -553,5 +739,14 @@
 			.el-input {
 			}
 		}
+	}
+	
+	// 失败原因省略显示
+	.fail-reason {
+		display: inline-block;
+		max-width: 150px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

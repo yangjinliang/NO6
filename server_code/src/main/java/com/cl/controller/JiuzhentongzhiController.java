@@ -7,6 +7,7 @@ import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
+import com.cl.service.NotificationService;
 import com.cl.utils.ValidatorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,9 @@ public class JiuzhentongzhiController {
     @Autowired
     private JiuzhentongzhiService jiuzhentongzhiService;
 
+    @Autowired
+    private NotificationService notificationService;
+
 
 
 
@@ -70,12 +74,13 @@ public class JiuzhentongzhiController {
                     jiuzhentongzhi.setZhanghao((String)request.getSession().getAttribute("username"));
                                     }
                                                                                                                         EntityWrapper<JiuzhentongzhiEntity> ew = new EntityWrapper<JiuzhentongzhiEntity>();
-                                                                                                                                                                                                                                
+                                                                                                                                                                                                        
         
         
         PageUtils page = jiuzhentongzhiService.queryPage(params, MPUtil.sort(MPUtil.between(MPUtil.likeOrEq(ew, jiuzhentongzhi), params), params));
         return R.ok().put("data", page);
     }
+
 
 
 
@@ -177,7 +182,89 @@ public class JiuzhentongzhiController {
         return R.ok();
     }
 
+    /**
+     * 更新用户接收状态
+     */
+    @RequestMapping("/updateReceiveStatus")
+    @Transactional
+    @SysLog("更新通知接收状态")
+    public R updateReceiveStatus(@RequestParam Long id, @RequestParam String status) {
+        boolean success = notificationService.updateReceiveStatus(id, status);
+        if (success) {
+            return R.ok("更新接收状态成功");
+        } else {
+            return R.error("更新接收状态失败");
+        }
+    }
 
+    /**
+     * 重试发送失败的通知
+     */
+    @RequestMapping("/retry/{id}")
+    @Transactional
+    @SysLog("重试发送通知")
+    public R retryNotification(@PathVariable("id") Long id) {
+        boolean success = notificationService.retryNotification(id);
+        if (success) {
+            return R.ok("重试发送成功");
+        } else {
+            return R.error("重试发送失败");
+        }
+    }
+
+    /**
+     * 批量重试发送失败的通知
+     */
+    @RequestMapping("/retryBatch")
+    @Transactional
+    @SysLog("批量重试发送通知")
+    public R retryBatchNotifications() {
+        int successCount = notificationService.retryFailedNotifications();
+        return R.ok("成功重试 " + successCount + " 条通知");
+    }
+
+    /**
+     * 获取发送失败的通知列表
+     */
+    @RequestMapping("/failedList")
+    public R failedList() {
+        List<JiuzhentongzhiEntity> failedNotifications = notificationService.getFailedNotifications();
+        return R.ok().put("data", failedNotifications);
+    }
+
+    /**
+     * 获取通知统计信息
+     */
+    @RequestMapping("/statistics")
+    public R statistics() {
+        Map<String, Object> statistics = new HashMap<>();
+        
+        // 总通知数
+        int totalCount = jiuzhentongzhiService.selectCount(new EntityWrapper<JiuzhentongzhiEntity>());
+        statistics.put("totalCount", totalCount);
+        
+        // 待发送
+        int pendingCount = jiuzhentongzhiService.selectCount(
+            new EntityWrapper<JiuzhentongzhiEntity>().eq("tongzhizhuangtai", "0"));
+        statistics.put("pendingCount", pendingCount);
+        
+        // 发送成功
+        int successCount = jiuzhentongzhiService.selectCount(
+            new EntityWrapper<JiuzhentongzhiEntity>().eq("tongzhizhuangtai", "2"));
+        statistics.put("successCount", successCount);
+        
+        // 发送失败
+        int failedCount = jiuzhentongzhiService.selectCount(
+            new EntityWrapper<JiuzhentongzhiEntity>().eq("tongzhizhuangtai", "3"));
+        statistics.put("failedCount", failedCount);
+        
+        // 已接收
+        int receivedCount = jiuzhentongzhiService.selectCount(
+            new EntityWrapper<JiuzhentongzhiEntity>().eq("jieshouzhuangtai", "1"));
+        statistics.put("receivedCount", receivedCount);
+        
+        return R.ok().put("data", statistics);
+    }
 
     
 
@@ -192,8 +279,6 @@ public class JiuzhentongzhiController {
     }
     
 	
-
-
 
 
 

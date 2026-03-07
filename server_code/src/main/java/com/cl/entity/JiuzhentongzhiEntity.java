@@ -103,6 +103,45 @@ public class JiuzhentongzhiEntity<T> implements Serializable {
 					
 	private String tongzhibeizhu;
 	
+	/**
+	 * 通知状态（0：待发送，1：发送中，2：发送成功，3：发送失败）
+	 */
+	private String tongzhizhuangtai;
+	
+	/**
+	 * 用户接收状态（0：未接收，1：已接收）
+	 */
+	private String jieshouzhuangtai;
+	
+	/**
+	 * 重试次数
+	 */
+	private Integer retryCount;
+	
+	/**
+	 * 发送失败原因
+	 */
+	private String failReason;
+	
+	/**
+	 * 最后发送时间
+	 */
+	@JsonFormat(locale="zh", timezone="GMT+8", pattern="yyyy-MM-dd HH:mm:ss")
+	@DateTimeFormat
+	private Date lastSendTime;
+	
+	/**
+	 * 用户接收时间
+	 */
+	@JsonFormat(locale="zh", timezone="GMT+8", pattern="yyyy-MM-dd HH:mm:ss")
+	@DateTimeFormat
+	private Date receiveTime;
+	
+	/**
+	 * 预约ID（关联医生预约）
+	 */
+	private Long yuyueId;
+
 
 	@JsonFormat(locale="zh", timezone="GMT+8", pattern="yyyy-MM-dd HH:mm:ss")
 	@DateTimeFormat
@@ -216,6 +255,90 @@ public class JiuzhentongzhiEntity<T> implements Serializable {
 	 */
 	public String getTongzhibeizhu() {
 		return tongzhibeizhu;
+	}
+	/**
+	 * 设置：通知状态
+	 */
+	public void setTongzhizhuangtai(String tongzhizhuangtai) {
+		this.tongzhizhuangtai = tongzhizhuangtai;
+	}
+	/**
+	 * 获取：通知状态
+	 */
+	public String getTongzhizhuangtai() {
+		return tongzhizhuangtai;
+	}
+	/**
+	 * 设置：用户接收状态
+	 */
+	public void setJieshouzhuangtai(String jieshouzhuangtai) {
+		this.jieshouzhuangtai = jieshouzhuangtai;
+	}
+	/**
+	 * 获取：用户接收状态
+	 */
+	public String getJieshouzhuangtai() {
+		return jieshouzhuangtai;
+	}
+	/**
+	 * 设置：重试次数
+	 */
+	public void setRetryCount(Integer retryCount) {
+		this.retryCount = retryCount;
+	}
+	/**
+	 * 获取：重试次数
+	 */
+	public Integer getRetryCount() {
+		return retryCount;
+	}
+	/**
+	 * 设置：发送失败原因
+	 */
+	public void setFailReason(String failReason) {
+		this.failReason = failReason;
+	}
+	/**
+	 * 获取：发送失败原因
+	 */
+	public String getFailReason() {
+		return failReason;
+	}
+	/**
+	 * 设置：最后发送时间
+	 */
+	public void setLastSendTime(Date lastSendTime) {
+		this.lastSendTime = lastSendTime;
+	}
+	/**
+	 * 获取：最后发送时间
+	 */
+	public Date getLastSendTime() {
+		return lastSendTime;
+	}
+	/**
+	 * 设置：用户接收时间
+	 */
+	public void setReceiveTime(Date receiveTime) {
+		this.receiveTime = receiveTime;
+	}
+	/**
+	 * 获取：用户接收时间
+	 */
+	public Date getReceiveTime() {
+		return receiveTime;
+	}
+	/**
+	 * 设置：预约ID
+	 */
+	public void setYuyueId(Long yuyueId) {
+		this.yuyueId = yuyueId;
+	}
+	/**
+	 * 获取：预约ID
+	 */
+	public Long getYuyueId() {
+		return yuyueId;
 	}
 
 }

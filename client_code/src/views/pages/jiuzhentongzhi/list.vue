@@ -32,6 +32,19 @@
 					</el-input>
 				</div>
 			</div>
+			<div class="search_view">
+				<div class="search_label">
+					通知状态：
+				</div>
+				<div class="search_box">
+					<el-select v-model="searchQuery.tongzhizhuangtai" placeholder="请选择通知状态" clearable>
+						<el-option label="待发送" value="0"></el-option>
+						<el-option label="发送中" value="1"></el-option>
+						<el-option label="发送成功" value="2"></el-option>
+						<el-option label="发送失败" value="3"></el-option>
+					</el-select>
+				</div>
+			</div>
 			<div class="search_btn_view">
 				<el-button class="search_btn" type="primary" @click="searchClick">搜索</el-button>
 				<el-button class="add_btn" type="success" v-if="btnAuth('jiuzhentongzhi','新增')" @click="addClick">新增</el-button>
@@ -86,6 +99,31 @@
 								{{scope.row.tongzhibeizhu}}
 							</template>
 						</el-table-column>
+						<el-table-column label="通知状态" :resizable='true' align="left" header-align="left">
+							<template #default="scope">
+								<el-tag :type="getStatusType(scope.row.tongzhizhuangtai)">
+									{{getStatusText(scope.row.tongzhizhuangtai)}}
+								</el-tag>
+							</template>
+						</el-table-column>
+						<el-table-column label="接收状态" :resizable='true' align="left" header-align="left">
+							<template #default="scope">
+								<el-tag :type="scope.row.jieshouzhuangtai=='1'?'success':'info'">
+									{{scope.row.jieshouzhuangtai=='1'?'已接收':'未接收'}}
+								</el-tag>
+							</template>
+						</el-table-column>
+						<el-table-column label="操作" width="200" :resizable='true' align="left" header-align="left">
+							<template #default="scope">
+								<el-button 
+									v-if="scope.row.tongzhizhuangtai=='2' && scope.row.jieshouzhuangtai!='1'" 
+									type="primary" 
+									size="small"
+									@click.stop="confirmReceive(scope.row.id)">
+									确认接收
+								</el-button>
+							</template>
+						</el-table-column>
 					</el-table>
                 </div>
 				<el-pagination
@@ -124,6 +162,9 @@
     import {
         useStore
     } from 'vuex';
+    import {
+        ElMessage
+    } from 'element-plus';
     const store = useStore()
     const user = computed(()=>store.getters['user/session'])
 	const context = getCurrentInstance()?.appContext.config.globalProperties;
@@ -188,6 +229,9 @@
 		if(searchQuery.value.zhanghao&&searchQuery.value.zhanghao!=''){
 			params.zhanghao = '%' + searchQuery.value.zhanghao + '%'
 		}
+		if(searchQuery.value.tongzhizhuangtai&&searchQuery.value.tongzhizhuangtai!=''){
+			params.tongzhizhuangtai = searchQuery.value.tongzhizhuangtai
+		}
 		context?.$http({
 			url: `${tableName}/${centerType.value?'page':'list'}`,
 			method: 'get',
@@ -222,6 +266,44 @@
 		preViewUrl.value = url
 		preViewVisible.value = true
 	}
+	
+	// 获取状态标签类型
+	const getStatusType = (status) => {
+		switch(status) {
+			case '0': return 'info'      // 待发送
+			case '1': return 'warning'   // 发送中
+			case '2': return 'success'   // 发送成功
+			case '3': return 'danger'    // 发送失败
+			default: return 'info'
+		}
+	}
+	
+	// 获取状态文本
+	const getStatusText = (status) => {
+		switch(status) {
+			case '0': return '待发送'
+			case '1': return '发送中'
+			case '2': return '发送成功'
+			case '3': return '发送失败'
+			default: return '未知'
+		}
+	}
+	
+	// 确认接收通知
+	const confirmReceive = (id) => {
+		context?.$http({
+			url: `${tableName}/updateReceiveStatus?id=${id}&status=1`,
+			method: 'post'
+		}).then(res => {
+			if(res.data.code==0){
+				ElMessage.success('确认接收成功')
+				getList()
+			}else{
+				ElMessage.error(res.data.msg || '确认接收失败')
+			}
+		})
+	}
+	
 	const init = async() => {
 		if(route.query.centerType){
 			centerType.value = true
@@ -319,6 +401,7 @@
 	.page_list {
 		//列表
 		.data_box {
+			//列表
 			.data_view {
 				// 表格样式
 				.el-table {

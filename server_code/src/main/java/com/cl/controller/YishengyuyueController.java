@@ -7,6 +7,7 @@ import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
+import com.cl.service.NotificationService;
 import com.cl.utils.ValidatorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,9 @@ public class YishengyuyueController {
     @Autowired
     private YishengyuyueService yishengyuyueService;
 
+    @Autowired
+    private NotificationService notificationService;
+
 
 
 
@@ -70,12 +74,13 @@ public class YishengyuyueController {
                     yishengyuyue.setZhanghao((String)request.getSession().getAttribute("username"));
                                     }
                                                                                                                                                                                 EntityWrapper<YishengyuyueEntity> ew = new EntityWrapper<YishengyuyueEntity>();
-                                                                                                                                                                                                                        
+                                                                                                                                                                                                        
         
         
         PageUtils page = yishengyuyueService.queryPage(params, MPUtil.sort(MPUtil.between(MPUtil.likeOrEq(ew, yishengyuyue), params), params));
         return R.ok().put("data", page);
     }
+
 
 
 
@@ -190,6 +195,16 @@ public class YishengyuyueController {
             yishengyuyue.setSfsh(sfsh);
             yishengyuyue.setShhf(shhf);
             list.add(yishengyuyue);
+            
+            // 如果审核通过，立即发送所有后续提醒
+            if("是".equals(sfsh)) {
+                try {
+                    notificationService.sendImmediateNotifications(yishengyuyue);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    // 通知发送失败不影响审核流程，记录日志即可
+                }
+            }
         }
         yishengyuyueService.updateBatchById(list);
         return R.ok();

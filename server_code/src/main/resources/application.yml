@@ -12,7 +12,31 @@ spring:
         driverClassName: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://127.0.0.1:3306/cl515882190?useUnicode=true&characterEncoding=utf-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=GMT%2B8&useSSL=false
         username: root
-        password: 202911
+        password: root1234
+    
+    # 邮件配置
+    mail:
+        host: smtp.qq.com
+        username: your_email@qq.com
+        password: your_email_password_or_auth_code
+        port: 587
+        protocol: smtp
+        default-encoding: UTF-8
+        properties:
+            mail:
+                smtp:
+                    auth: true
+                    starttls:
+                        enable: true
+                    ssl:
+                        enable: true
+    
+    # 启用定时任务
+    task:
+        scheduling:
+            pool:
+                size: 5
+            thread-name-prefix: notification-scheduler-
 
 #        driverClassName: com.microsoft.sqlserver.jdbc.SQLServerDriver
 #        url: jdbc:sqlserver://127.0.0.1:1433;DatabaseName=cl515882190
