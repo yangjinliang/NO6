@@ -12,7 +12,7 @@ spring:
         driverClassName: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://127.0.0.1:3306/cl515882190?useUnicode=true&characterEncoding=utf-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=GMT%2B8&useSSL=false
         username: root
-        password: 202911
+        password: root1234
 
 #        driverClassName: com.microsoft.sqlserver.jdbc.SQLServerDriver
 #        url: jdbc:sqlserver://127.0.0.1:1433;DatabaseName=cl515882190
@@ -25,6 +25,23 @@ spring:
         max-request-size: 100MB
     resources:
       static-locations: classpath:static/,file:static/
+      
+    # 邮件配置
+    mail:
+      host: smtp.qq.com
+      port: 587
+      username: your-email@qq.com
+      password: your-email-password
+      protocol: smtp
+      default-encoding: UTF-8
+      properties:
+        mail:
+          smtp:
+            auth: true
+            starttls:
+              enable: true
+              required: true
+          debug: false
 
 #mybatis
 mybatis-plus:

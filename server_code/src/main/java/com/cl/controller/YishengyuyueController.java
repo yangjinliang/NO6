@@ -1,38 +1,31 @@
 package com.cl.controller;
 
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.text.ParseException;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
 
-import com.cl.utils.ValidatorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
-import com.baomidou.mybatisplus.mapper.Wrapper;
 import com.cl.annotation.IgnoreAuth;
 import com.cl.annotation.SysLog;
 
 import com.cl.entity.YishengyuyueEntity;
+import com.cl.entity.JiuzhentongzhiEntity;
 import com.cl.entity.view.YishengyuyueView;
 
 import com.cl.service.YishengyuyueService;
-import com.cl.service.TokenService;
+import com.cl.service.JiuzhentongzhiService;
+import com.cl.service.NotificationSendService;
 import com.cl.utils.PageUtils;
 import com.cl.utils.R;
 import com.cl.utils.MPUtil;
-import com.cl.utils.MapUtils;
 import com.cl.utils.CommonUtil;
 
 /**
@@ -47,6 +40,12 @@ import com.cl.utils.CommonUtil;
 public class YishengyuyueController {
     @Autowired
     private YishengyuyueService yishengyuyueService;
+    
+    @Autowired
+    private JiuzhentongzhiService jiuzhentongzhiService;
+    
+    @Autowired
+    private NotificationSendService notificationSendService;
 
 
 
@@ -187,12 +186,48 @@ public class YishengyuyueController {
         List<YishengyuyueEntity> list = new ArrayList<YishengyuyueEntity>();
         for(Long id : ids) {
             YishengyuyueEntity yishengyuyue = yishengyuyueService.selectById(id);
+            String oldSfsh = yishengyuyue.getSfsh();
             yishengyuyue.setSfsh(sfsh);
             yishengyuyue.setShhf(shhf);
             list.add(yishengyuyue);
+            
+            // 如果审核通过且之前未审核通过，则创建并发送通知
+            if ("是".equals(sfsh) && !"是".equals(oldSfsh)) {
+                createAndSendNotifications(yishengyuyue);
+            }
         }
         yishengyuyueService.updateBatchById(list);
         return R.ok();
+    }
+    
+    /**
+     * 创建并发送所有通知
+     */
+    private void createAndSendNotifications(YishengyuyueEntity yuyue) {
+        // 通知类型：预约成功提醒、就诊前1天提醒、就诊前1小时提醒
+        String[] reminderTypes = {"预约成功提醒", "就诊前1天提醒", "就诊前1小时提醒"};
+        
+        for (String reminderType : reminderTypes) {
+            JiuzhentongzhiEntity notification = new JiuzhentongzhiEntity();
+            notification.setTongzhibianhao(CommonUtil.getRandomString(10));
+            notification.setYishengzhanghao(yuyue.getYishengzhanghao());
+            notification.setDianhua(yuyue.getDianhua());
+            notification.setJiuzhenshijian(yuyue.getYuyueshijian());
+            notification.setTongzhishijian(new Date());
+            notification.setZhanghao(yuyue.getZhanghao());
+            notification.setShouji(yuyue.getShouji());
+            notification.setTongzhibeizhu(reminderType);
+            notification.setSendStatus(0); // 待发送
+            notification.setRetryCount(0);
+            notification.setMaxRetryCount(3);
+            notification.setAddtime(new Date());
+            
+            // 保存通知
+            jiuzhentongzhiService.insert(notification);
+            
+            // 立即发送通知
+            notificationSendService.sendNotification(notification);
+        }
     }
 
 

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cl.dao.TongzhiSendLogDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.cl.entity.TongzhiSendLogEntity" id="tongzhiSendLogMap">
+        <result property="tongzhiId" column="tongzhi_id"/>
+        <result property="tongzhibianhao" column="tongzhibianhao"/>
+        <result property="sendStatus" column="send_status"/>
+        <result property="sendTime" column="send_time"/>
+        <result property="sendResult" column="send_result"/>
+        <result property="shouji" column="shouji"/>
+        <result property="retryCount" column="retry_count"/>
+    </resultMap>
+
+    <select id="selectListView"
+		resultType="com.cl.entity.view.TongzhiSendLogView" >
+
+		SELECT  tongzhi_send_log.* FROM tongzhi_send_log  tongzhi_send_log 	        
+        <where> 1=1 ${ew.sqlSegment}</where>
+	</select>
+	
+	<select id="selectView"
+		resultType="com.cl.entity.view.TongzhiSendLogView" >
+		SELECT * FROM tongzhi_send_log  tongzhi_send_log <where> 1=1 ${ew.sqlSegment}</where>
+	</select>
+
+
+
+</mapper>

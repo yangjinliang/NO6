@@ -1,26 +1,16 @@
 package com.cl.controller;
 
-import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.text.ParseException;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
 
-import com.cl.utils.ValidatorUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
-import com.baomidou.mybatisplus.mapper.Wrapper;
 import com.cl.annotation.IgnoreAuth;
 import com.cl.annotation.SysLog;
 
@@ -28,12 +18,10 @@ import com.cl.entity.JiuzhentongzhiEntity;
 import com.cl.entity.view.JiuzhentongzhiView;
 
 import com.cl.service.JiuzhentongzhiService;
-import com.cl.service.TokenService;
+import com.cl.service.NotificationSendService;
 import com.cl.utils.PageUtils;
 import com.cl.utils.R;
 import com.cl.utils.MPUtil;
-import com.cl.utils.MapUtils;
-import com.cl.utils.CommonUtil;
 
 /**
  * 就诊通知
@@ -47,6 +35,9 @@ import com.cl.utils.CommonUtil;
 public class JiuzhentongzhiController {
     @Autowired
     private JiuzhentongzhiService jiuzhentongzhiService;
+    
+    @Autowired
+    private NotificationSendService notificationSendService;
 
 
 
@@ -191,13 +182,28 @@ public class JiuzhentongzhiController {
         return R.ok();
     }
     
+    /**
+     * 手动重试单个通知
+     */
+    @RequestMapping("/retry/{id}")
+    @SysLog("重试就诊通知")
+    public R retry(@PathVariable("id") Long id){
+        notificationSendService.retryNotificationById(id);
+        return R.ok("重试请求已提交");
+    }
+    
+    /**
+     * 批量重试所有失败通知
+     */
+    @RequestMapping("/retryAll")
+    @SysLog("批量重试就诊通知")
+    public R retryAll(){
+        notificationSendService.retryFailedNotifications();
+        return R.ok("批量重试请求已提交");
+    }
+    
 	
-
-
-
-
-
-
+	
 
 
 
